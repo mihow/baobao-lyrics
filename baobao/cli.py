@@ -2,7 +2,7 @@
 Baobao CLI - Chinese lyrics transcription and learning tool.
 
 Usage:
-    baobao audio.mp3                     # Simple: transcribe to SRT
+    baobao transcribe audio.mp3          # Transcribe to SRT
     baobao play audio.mp3                # Play with synced subtitles (mpv)
     baobao enhance lyrics.srt            # Add pinyin + translations
     baobao batch ./songs/                # Batch transcription
@@ -48,17 +48,8 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
-@app.callback(invoke_without_command=True)
+@app.callback()
 def main(
-    ctx: typer.Context,
-    audio_file: Annotated[
-        Optional[Path],
-        typer.Argument(
-            help="Audio file to transcribe (for simple usage: baobao audio.mp3)",
-            exists=True,
-            dir_okay=False,
-        ),
-    ] = None,
     version: Annotated[
         bool,
         typer.Option(
@@ -76,14 +67,12 @@ def main(
     Create time-synced subtitles from Chinese audio with optional
     pinyin romanization and English translations.
 
-    Simple usage:
-        baobao song.mp3              # Transcribe audio to SRT
-        baobao transcribe song.mp3   # Explicit command (same as above)
+    Quick usage:
+        baobao transcribe song.mp3   # Transcribe audio to SRT
+        baobao play song.mp3         # Play with synced subtitles
         baobao enhance song.srt      # Add pinyin + translations
     """
-    # If no subcommand and audio file provided, invoke transcribe
-    if ctx.invoked_subcommand is None and audio_file:
-        ctx.invoke(transcribe, audio_file=audio_file)
+    pass
 
 
 @app.command()

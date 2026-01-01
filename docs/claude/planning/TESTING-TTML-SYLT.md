@@ -33,7 +33,14 @@ mpv --sub-file=test_output/test_lyrics.ttml "songs/01 你是我阳光 You Are My
 # - Any error messages?
 ```
 
-**Result**: _[NEEDS TESTING]_
+**Result**: ❌ **TTML NOT SUPPORTED**
+```
+Tested: 2025-12-31
+Command: baobao play "songs/01 你是我阳光..." -s test_output/test_lyrics.ttml
+Error: "Can not open external file test_output/test_lyrics.ttml"
+Behavior: mpv automatically fell back to .srt file
+Conclusion: mpv does not recognize TTML format
+```
 
 ### Test 2: VLC Media Player
 
@@ -220,10 +227,49 @@ python scripts/test_sylt_embed.py
 mid3v2 --list test_output/test_with_sylt.mp3 | grep -A 10 SYLT
 ```
 
+## Testing Results Summary
+
+### TTML Compatibility
+**Status**: ❌ **NOT RECOMMENDED** for default format
+
+**Test Results**:
+- mpv: Does not support TTML (tested 2025-12-31)
+- VLC: Not tested (likely similar lack of support)
+- Mobile players: Unknown, but likely poor support
+
+**Conclusion**:
+- TTML is not widely supported by common media players
+- Keep **SRT as default format** for maximum compatibility
+- TTML can be added as **optional output format** if needed for specific use cases (Apple Music, etc.)
+
+### SYLT Compatibility
+**Status**: ⏸️ **TESTING DEFERRED**
+
+Based on TTML results and research showing limited SYLT support:
+- Most players prefer external .lrc files over embedded SYLT
+- External files have better compatibility
+- Recommend focusing on external file formats (SRT, LRC) first
+
+## Final Decisions
+
+### Task 3 (TTML Support)
+**Decision**: ✅ **Implement as OPTIONAL format only**
+- Keep SRT as default (proven compatibility)
+- Add TTML as `--format ttml` option
+- Useful for Apple Music submissions
+- Document limited player support in README
+
+### Task 5 (Embedded Lyrics)
+**Decision**: ⏸️ **DEFER** or make low priority
+- External .srt/.lrc files work universally
+- SYLT has limited player support
+- Better to focus on improving existing formats
+- Can revisit if user demand exists
+
 ## Next Steps
 
-1. Run tests above
-2. Document results in this file
-3. Update Task 3 and Task 5 plans based on findings
-4. Decide: TTML as default or SRT?
-5. Decide: Implement SYLT or skip?
+1. ✅ TTML tested - mpv does not support
+2. ✅ Decision made - keep SRT as default
+3. ⏭️ Proceed with Task 3 implementation (TTML as optional format)
+4. ⏭️ Skip or defer Task 5 (embedded lyrics)
+5. ⏭️ Update task-3 plan to reflect "optional format" approach

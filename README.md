@@ -32,8 +32,8 @@ pip install -e .
 ### Quick Start (Simple Workflow)
 
 ```bash
-# Just transcribe - simple and fast!
-baobao song.mp3
+# Transcribe audio to SRT - simple and fast!
+baobao transcribe song.mp3
 
 # That's it! Creates song.srt with time-synced Chinese lyrics
 ```
@@ -71,9 +71,12 @@ baobao enhance lyrics.srt --format learn
 
 ```bash
 # Step 1: Transcribe
-baobao song.mp3
+baobao transcribe song.mp3
 
-# Step 2: Enhance with pinyin + translations
+# Step 2: Play and validate
+baobao play song.mp3
+
+# Step 3: Enhance with pinyin + translations
 baobao enhance song.srt
 
 # Now you have song.enhanced.srt with full learning support!
