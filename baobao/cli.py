@@ -3,10 +3,9 @@ Baobao CLI - Chinese lyrics transcription and learning tool.
 
 Usage:
     baobao audio.mp3                     # Simple: transcribe to SRT
-    baobao transcribe audio.mp3          # Explicit transcribe command
+    baobao play audio.mp3                # Play with synced subtitles (mpv)
     baobao enhance lyrics.srt            # Add pinyin + translations
     baobao batch ./songs/                # Batch transcription
-    baobao preview audio.mp3             # Preview with synced subtitles (mpv)
 """
 
 import shutil
@@ -332,6 +331,96 @@ def batch(
     console.print(
         f"\n[bold]Batch complete:[/bold] {success} success, {failed} failed"
     )
+
+
+@app.command()
+def play(
+    audio_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Audio file to play with synced subtitles",
+            exists=True,
+            dir_okay=False,
+        ),
+    ],
+    subtitle: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--subtitle",
+            "-s",
+            help="Subtitle file (default: auto-detect .srt/.lrc/.ttml)",
+        ),
+    ] = None,
+):
+    """
+    Play audio with synced subtitles using mpv.
+
+    Automatically finds and loads matching subtitle files.
+    Requires mpv to be installed (sudo apt install mpv).
+
+    Examples:
+        baobao play song.mp3
+        baobao play song.mp3 -s song.enhanced.srt
+    """
+    # Check if mpv is available
+    if not shutil.which("mpv"):
+        console.print("[bold red]Error:[/bold red] mpv not found")
+        console.print("[dim]Install with: sudo apt install mpv[/dim]")
+        raise typer.Exit(1)
+
+    # Find subtitle file if not specified
+    if subtitle is None:
+        # Look for subtitle files in order of preference
+        candidates = [
+            audio_file.with_suffix(".enhanced.srt"),
+            audio_file.with_suffix(".learn.srt"),
+            audio_file.with_suffix(".emoji.srt"),
+            audio_file.with_suffix(".srt"),
+            audio_file.with_suffix(".lrc"),
+            audio_file.with_suffix(".ttml"),
+            # Also check for .test.srt pattern
+            audio_file.with_suffix("").with_suffix(".test.enhanced.srt"),
+            audio_file.with_suffix("").with_suffix(".test.srt"),
+        ]
+
+        for candidate in candidates:
+            if candidate.exists():
+                subtitle = candidate
+                break
+
+        if subtitle is None:
+            console.print("[bold red]Error:[/bold red] No subtitle file found")
+            console.print(
+                f"[dim]Looked for: {audio_file.stem}.srt, .lrc, .ttml, etc.[/dim]"
+            )
+            console.print(
+                f"[dim]Run 'baobao {audio_file.name}' first or specify with -s[/dim]"
+            )
+            raise typer.Exit(1)
+
+    console.print(
+        Panel.fit(
+            f"[bold blue]🐼 Baobao Player[/bold blue]\n"
+            f"Audio: {audio_file.name}\n"
+            f"Subtitle: {subtitle.name}",
+            border_style="blue",
+        )
+    )
+
+    console.print("\n[dim]Starting mpv... Press 'q' to quit[/dim]\n")
+
+    # Run mpv with subtitles
+    try:
+        subprocess.run(
+            ["mpv", f"--sub-file={subtitle}", str(audio_file)], check=True
+        )
+    except subprocess.CalledProcessError as e:
+        console.print(
+            f"[bold red]Error:[/bold red] mpv exited with code {e.returncode}"
+        )
+        raise typer.Exit(1)
+    except KeyboardInterrupt:
+        pass  # User quit with Ctrl+C
 
 
 @app.command()

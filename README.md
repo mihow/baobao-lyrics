@@ -92,14 +92,14 @@ baobao batch ./songs/ --pattern "*.wav"
 for srt in songs/*.srt; do baobao enhance "$srt"; done
 ```
 
-### Preview with Synced Subtitles
+### Play with Synced Subtitles
 
 ```bash
-# Preview audio with subtitles (uses mpv)
-baobao preview song.mp3
+# Play audio with auto-detected subtitles (uses mpv)
+baobao play song.mp3
 
 # Specify a subtitle file
-baobao preview song.mp3 -s song.enhanced.srt
+baobao play song.mp3 -s song.enhanced.srt
 
 # Or use mpv directly
 mpv --sub-file=song.srt song.mp3
