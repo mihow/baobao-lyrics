@@ -2,9 +2,10 @@
 Baobao CLI - Chinese lyrics transcription and learning tool.
 
 Usage:
-    baobao transcribe audio.mp3          # Create time-synced subtitles
+    baobao audio.mp3                     # Simple: transcribe to SRT
+    baobao transcribe audio.mp3          # Explicit transcribe command
     baobao enhance lyrics.srt            # Add pinyin + translations
-    baobao process audio.mp3             # Full pipeline: transcribe + enhance
+    baobao batch ./songs/                # Batch transcription
     baobao preview audio.mp3             # Preview with synced subtitles (mpv)
 """
 
@@ -48,8 +49,17 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
+    audio_file: Annotated[
+        Optional[Path],
+        typer.Argument(
+            help="Audio file to transcribe (for simple usage: baobao audio.mp3)",
+            exists=True,
+            dir_okay=False,
+        ),
+    ] = None,
     version: Annotated[
         bool,
         typer.Option(
@@ -66,8 +76,15 @@ def main(
 
     Create time-synced subtitles from Chinese audio with optional
     pinyin romanization and English translations.
+
+    Simple usage:
+        baobao song.mp3              # Transcribe audio to SRT
+        baobao transcribe song.mp3   # Explicit command (same as above)
+        baobao enhance song.srt      # Add pinyin + translations
     """
-    pass
+    # If no subcommand and audio file provided, invoke transcribe
+    if ctx.invoked_subcommand is None and audio_file:
+        ctx.invoke(transcribe, audio_file=audio_file)
 
 
 @app.command()
@@ -126,7 +143,8 @@ def transcribe(
     """
     console.print(
         Panel.fit(
-            f"[bold blue]🐼 Baobao Transcription[/bold blue]\n" f"Model: {model.value}",
+            f"[bold blue]🐼 Baobao Transcription[/bold blue]\n"
+            f"Model: {model.value}",
             border_style="blue",
         )
     )
@@ -140,7 +158,7 @@ def transcribe(
             word_highlight=karaoke,
         )
 
-        console.print(f"\n[bold green]✓ Done![/bold green]")
+        console.print("\n[bold green]✓ Done![/bold green]")
         console.print(f"Output: {output_path}")
 
     except FileNotFoundError as e:
@@ -224,112 +242,13 @@ def enhance(
             model=model,
         )
 
-        console.print(f"\n[bold green]✓ Done![/bold green]")
+        console.print("\n[bold green]✓ Done![/bold green]")
         console.print(f"Output: {output_path}")
 
     except ConnectionError as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
         console.print("[dim]Make sure Ollama is running: ollama serve[/dim]")
         raise typer.Exit(1)
-    except Exception as e:
-        console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
-
-
-@app.command()
-def process(
-    audio_file: Annotated[
-        Path,
-        typer.Argument(
-            help="Audio file to process",
-            exists=True,
-            dir_okay=False,
-        ),
-    ],
-    output: Annotated[
-        Optional[Path],
-        typer.Option(
-            "--output",
-            "-o",
-            help="Output file path",
-        ),
-    ] = None,
-    model: Annotated[
-        ModelSize,
-        typer.Option(
-            "--model",
-            "-m",
-            help="Whisper model size",
-        ),
-    ] = ModelSize.LARGE,
-    format: Annotated[
-        OutputFormat,
-        typer.Option(
-            "--format",
-            "-f",
-            help="Enhancement format: full, emoji, or learn",
-        ),
-    ] = OutputFormat.FULL,
-    karaoke: Annotated[
-        bool,
-        typer.Option(
-            "--karaoke",
-            "-k",
-            help="Enable word-by-word highlighting",
-        ),
-    ] = False,
-    skip_enhance: Annotated[
-        bool,
-        typer.Option(
-            "--skip-enhance",
-            help="Skip LLM enhancement (just transcribe)",
-        ),
-    ] = False,
-):
-    """
-    Full pipeline: transcribe audio and enhance with translations.
-
-    This is the main workflow - transcribes audio to subtitles,
-    then adds pinyin and English translations.
-
-    Examples:
-        baobao process song.mp3
-        baobao process song.mp3 --format learn
-        baobao process song.mp3 --skip-enhance  # Just transcribe
-    """
-    console.print(
-        Panel.fit(
-            f"[bold blue]🐼 Baobao Full Pipeline[/bold blue]\n"
-            f"Whisper: {model.value}\n"
-            f"Enhancement: {'skip' if skip_enhance else format.value}",
-            border_style="blue",
-        )
-    )
-
-    try:
-        # Step 1: Transcribe
-        srt_path = transcribe_audio(
-            audio_path=audio_file,
-            model_size=model.value,
-            format="srt",
-            word_highlight=karaoke,
-        )
-
-        # Step 2: Enhance (unless skipped)
-        if not skip_enhance:
-            console.print("\n" + "─" * 40 + "\n")
-
-            output_path = enhance_srt(
-                srt_path=srt_path,
-                output_path=output,
-                output_format=format,
-            )
-        else:
-            output_path = srt_path
-
-        console.print(f"\n[bold green]✓ Pipeline complete![/bold green]")
-        console.print(f"Output: {output_path}")
-
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
         raise typer.Exit(1)
@@ -361,31 +280,29 @@ def batch(
             help="Whisper model size",
         ),
     ] = ModelSize.LARGE,
-    skip_enhance: Annotated[
-        bool,
-        typer.Option(
-            "--skip-enhance",
-            help="Skip LLM enhancement",
-        ),
-    ] = False,
 ):
     """
-    Process multiple audio files in a directory.
+    Transcribe multiple audio files in a directory.
+
+    By default, only transcribes to SRT files. Use 'baobao enhance'
+    separately to add pinyin and translations.
 
     Examples:
         baobao batch ./songs/
         baobao batch ./songs/ --pattern "*.wav"
-        baobao batch ./songs/ --skip-enhance
+        baobao batch ./songs/ --model base
     """
     files = list(directory.glob(pattern))
 
     if not files:
-        console.print(f"[yellow]No files matching '{pattern}' in {directory}[/yellow]")
+        console.print(
+            f"[yellow]No files matching '{pattern}' in {directory}[/yellow]"
+        )
         raise typer.Exit(1)
 
     console.print(
         Panel.fit(
-            f"[bold blue]🐼 Baobao Batch Processing[/bold blue]\n"
+            f"[bold blue]🐼 Baobao Batch Transcription[/bold blue]\n"
             f"Files: {len(files)}\n"
             f"Model: {model.value}",
             border_style="blue",
@@ -399,16 +316,12 @@ def batch(
         console.print(f"\n[bold]({i}/{len(files)})[/bold] {audio_file.name}")
 
         try:
-            # Transcribe
-            srt_path = transcribe_audio(
+            # Transcribe only
+            transcribe_audio(
                 audio_path=audio_file,
                 model_size=model.value,
                 format="srt",
             )
-
-            # Enhance
-            if not skip_enhance:
-                enhance_srt(srt_path=srt_path)
 
             success += 1
 
@@ -416,7 +329,9 @@ def batch(
             console.print(f"[red]Failed: {e}[/red]")
             failed += 1
 
-    console.print(f"\n[bold]Batch complete:[/bold] {success} success, {failed} failed")
+    console.print(
+        f"\n[bold]Batch complete:[/bold] {success} success, {failed} failed"
+    )
 
 
 @app.command()
@@ -477,7 +392,9 @@ def preview(
             console.print(
                 f"[dim]Looked for: {audio_file.stem}.srt, .enhanced.srt, etc.[/dim]"
             )
-            console.print("[dim]Run 'baobao transcribe' first or specify with -s[/dim]")
+            console.print(
+                "[dim]Run 'baobao transcribe' first or specify with -s[/dim]"
+            )
             raise typer.Exit(1)
 
     console.print(
