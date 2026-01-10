@@ -20,6 +20,11 @@ Usage:
 
     # Or with expected words
     uv run python scripts/validate_timing.py scripts/test_output/timing_test.srt --expected one two three four five
+
+Notes:
+    - For CI testing, use --model base (faster, lighter than large-v3)
+    - Base model transcribes spoken numbers as digits (e.g., "one" -> "1")
+    - Use --expected 1 2 3 4 5 when validating base model output
 """
 
 import re
