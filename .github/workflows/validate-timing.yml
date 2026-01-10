@@ -46,19 +46,19 @@ jobs:
 
       - name: Transcribe test audio (standard mode)
         run: |
-          uv run baobao transcribe scripts/test_output/timing_test.mp3
+          uv run baobao transcribe scripts/test_output/timing_test.mp3 --model base
 
       - name: Validate standard SRT format
         run: |
-          uv run python scripts/validate_timing.py scripts/test_output/timing_test.srt --expected one two three four five
+          uv run python scripts/validate_timing.py scripts/test_output/timing_test.srt --expected 1 2 3 4 5
 
       - name: Transcribe test audio (karaoke mode)
         run: |
-          uv run baobao transcribe scripts/test_output/timing_test.mp3 --karaoke
+          uv run baobao transcribe scripts/test_output/timing_test.mp3 --karaoke --model base
 
       - name: Validate karaoke SRT format
         run: |
-          uv run python scripts/validate_timing.py scripts/test_output/timing_test.srt --expected one two three four five
+          uv run python scripts/validate_timing.py scripts/test_output/timing_test.srt --expected 1 2 3 4 5
 
       - name: Upload test artifacts
         if: always()
