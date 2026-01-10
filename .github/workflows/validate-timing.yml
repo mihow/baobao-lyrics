@@ -1,0 +1,81 @@
+name: Timing Validation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'baobao/transcribe.py'
+      - 'scripts/generate_test_audio.py'
+      - 'scripts/validate_timing.py'
+      - '.github/workflows/validate-timing.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'baobao/transcribe.py'
+      - 'scripts/generate_test_audio.py'
+      - 'scripts/validate_timing.py'
+      - '.github/workflows/validate-timing.yml'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  timing-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: |
+          uv sync
+
+      - name: Generate test audio
+        run: |
+          uv run python scripts/generate_test_audio.py
+
+      - name: Transcribe test audio (standard mode)
+        run: |
+          uv run baobao transcribe scripts/test_output/timing_test.mp3
+
+      - name: Validate standard SRT format
+        run: |
+          uv run python scripts/validate_timing.py scripts/test_output/timing_test.srt --expected one two three four five
+
+      - name: Transcribe test audio (karaoke mode)
+        run: |
+          uv run baobao transcribe scripts/test_output/timing_test.mp3 --karaoke
+
+      - name: Validate karaoke SRT format
+        run: |
+          uv run python scripts/validate_timing.py scripts/test_output/timing_test.srt --expected one two three four five
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timing-validation-results
+          path: |
+            scripts/test_output/*.mp3
+            scripts/test_output/*.srt
+            scripts/test_output/*.json
+          retention-days: 7
+
+      - name: Report results
+        if: success()
+        run: |
+          echo "✅ Timing validation passed!"
+          echo "- Generated synthetic test audio"
+          echo "- Transcribed with Whisper (standard and karaoke modes)"
+          echo "- No format issues detected"
+          echo "- No overlapping SRT entries found"
