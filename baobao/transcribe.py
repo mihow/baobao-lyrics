@@ -174,11 +174,22 @@ class Transcriber:
                 start = self._format_srt_time(word_info["start"])
                 end = self._format_srt_time(word_info["end"])
 
-                # Highlight current word in the full line
-                highlighted = full_text.replace(
-                    word,
+                # Highlight current word using word boundary matching
+                # This prevents matching partial words (e.g., "a" inside "Mary")
+                import re
+
+                # Escape special regex characters in the word
+                escaped_word = re.escape(word)
+
+                # Use word boundaries to match only complete words
+                # \b matches word boundaries (start/end of word)
+                pattern = rf'\b{escaped_word}\b'
+
+                highlighted = re.sub(
+                    pattern,
                     f'<font color="#00ff00">{word}</font>',
-                    1,  # Only replace first occurrence
+                    full_text,
+                    count=1,  # Only replace first occurrence
                 )
 
                 f.write(f"{idx}\n{start} --> {end}\n{highlighted}\n\n")
